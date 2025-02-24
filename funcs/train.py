@@ -39,6 +39,7 @@ def uv_normal_loss(uv, normal, pre_uv):
 def train_main(imgDataset, model, updater, num_epochs):
     uv=imgDataset.initUV()
     normal=imgDataset.getImgTensor("normal")
+    normal=imgDataset.byMask(normal)
     pre_uv=imgDataset.getPreUV()
 
     for epoch in range(num_epochs):
