@@ -37,8 +37,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
 
     resUV=train.train_main(imgDataset, model, optimizer, args.epoch)
-    temp=imgDataset.initUV()
-    imgDataset.uvReplace(temp)
+    imgDataset.uvReplace(resUV)
 
 
 if __name__=="__main__":

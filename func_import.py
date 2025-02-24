@@ -6,7 +6,7 @@ partL=['funcs']
 def addPart(partList)->None:
     tempDir=Path.cwd()
     while 1:
-        if tempDir.name=='normal_toUV_v2':
+        if tempDir.name=='normal_reUV':
             break
         if tempDir==tempDir.parent:
             raise Exception("root_path: Lose!")
