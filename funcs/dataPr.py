@@ -1,10 +1,11 @@
 import torch
 import torchvision.transforms as vis_trans
 from PIL import Image
+import json
         
-def imgToTensor(imgSize):
+def imgToTensor(imgSize):#将图像转化为Pytorch张量
     transList = [
-            vis_trans.Resize(imgSize),
+            vis_trans.Resize(imgSize),#调整大小
             #  vis_trans.RandomCrop(picSize,pad_if_needed=True),
             #  vis_trans.RandomHorizontalFlip(),
             #  vis_trans.RandomVerticalFlip(),
@@ -12,7 +13,7 @@ def imgToTensor(imgSize):
     transfm = vis_trans.Compose(transList)
     return transfm
 
-def tensorToImg(imgSize):
+def tensorToImg(imgSize):#将Pytorch张量转换回图像
     transList = [
             vis_trans.Resize(imgSize),
             #  vis_trans.RandomCrop(picSize,pad_if_needed=True),
@@ -25,9 +26,9 @@ def tensorToImg(imgSize):
 
 class MyImgDataClass():
     def __init__(self, oriImg, device):
-        self.device=device
-        self.root="dataset/"
-        tempDict={}
+        self.device=device#设备
+        self.root="dataset/"#根目录
+        tempDict={}#字典
         tempDict["origin"]=oriImg
         tempDict["mask"]="mask_"+oriImg
         tempDict["normal"]="normal_"+oriImg
@@ -35,19 +36,19 @@ class MyImgDataClass():
         tempDict["result"]="res_"+oriImg
         self.imgDict=tempDict
         
-        ori=self.getImg("origin")
-        (self.w,self.h)=ori.size
+        ori=self.getImg("origin")#加载原始图像
+        (self.w,self.h)=ori.size#原始尺寸
 
-        maskTensor=self.getImgTensor("mask")
-        self.maskFlag=((maskTensor>0)[0,0,:])#shape:(h,w)
+        maskTensor=self.getImgTensor("mask")#加载掩码图像
+        self.maskFlag=((maskTensor>0)[0,0,:])#shape:(h,w) 生成布尔掩码
 
     def getImg(self, imgName):
-        imgPath=self.root+self.imgDict[imgName]
+        imgPath=self.root+self.imgDict[imgName]#拼接图像路径
         img=Image.open(imgPath)      
         return img
     
     def getImgTensor(self, imgName, h=-1, w=-1):
-        if(h<0 or w <0):
+        if(h<0 or w <0):#未指定 h and w
             h=self.h
             w=self.w
 
@@ -55,15 +56,15 @@ class MyImgDataClass():
         imgTrans=imgToTensor((h,w))
         imgTensor=imgTrans(img)
         return imgTensor[None,].to(self.device)#shape:(batch:1, dim, h, w)
-
+        #将张量扩展到批次维度，并将其移动到指定设备
     def byMask(self, img, ifMain=True):
         if ifMain:
-            img[:,:,~self.maskFlag]=0
+            img[:,:,~self.maskFlag]=0#ifMain为True则保留掩码区域，非掩码区域置零
         else:
             img[:,:,self.maskFlag]=0
         return img
     
-    def initUV(self, ):
+    def initUV(self, ):#生成一个随机的UV映射张量
         raw_data=torch.randn(size=(1, 2, self.h, self.w))
         # 将数据缩放到0到1范围内
         min_val = raw_data.min()
@@ -73,13 +74,23 @@ class MyImgDataClass():
 
         uvByMask=self.byMask(scaled_data)
         return uvByMask
+
+    def getPreUV(self,):
+        with open('normal_reUV-main/funcs/img1Json.json', 'r', encoding='utf-8') as f:
+            json_str = f.read()
+        data = json.loads(json_str)
+        if isinstance(data, str):
+            data = json.loads(data)
+        uv_data = data["pred_densepose"][0]['uv']
+        uv_tensor = torch.tensor(uv_data).float()
+        preUv=uv_tensor
+        return preUv
+
+
+
+
     
-    def getPreUV(self, ):
-        #from densepose
-        preUV=self.initUV()
-        return preUV
-    
-    def uvReplace(self, newUV):
+    def uvReplace(self, newUV):#根据 UV 映射从纹理图像中采样像素，替换原始图像中的对应区域。
         minSize=min(self.h,self.w)
 
         texture=self.getImgTensor("texture", minSize, minSize)
