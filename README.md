@@ -8,6 +8,5 @@
     3. Run "python main.py {origin} (texture)".
 
 ## Problem:
-    1. do not get the pre_uv.
-    2. The model may not be effective.
+    1. The model may not be effective.
     
