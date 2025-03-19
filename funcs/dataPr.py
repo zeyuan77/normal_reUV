@@ -24,15 +24,20 @@ def tensorToImg(imgSize):
 
 
 class MyImgDataClass():
-    def __init__(self, oriImg, device):
+    def __init__(self, oriImg, textureImg, device):
         self.device=device
         self.root="dataset/"
         tempDict={}
-        tempDict["origin"]=oriImg
-        tempDict["mask"]="mask_"+oriImg
-        tempDict["normal"]="normal_"+oriImg
-        tempDict["texture"]="texture_"+oriImg
-        tempDict["result"]="res_"+oriImg
+        tempDict["origin"]=f"{oriImg}.jpg"
+        tempDict["mask"]=f"mask_{oriImg}.jpg"
+        tempDict["normal"]=f"normal_{oriImg}.jpg"
+
+        tempDict["preUV"]=f"preUV_{oriImg}.json"
+
+        tempDict["texture"]=f"{textureImg}.jpg"
+
+        tempDict["result"]=f"res_{oriImg}.jpg"
+        
         self.imgDict=tempDict
         
         ori=self.getImg("origin")

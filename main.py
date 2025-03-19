@@ -9,6 +9,8 @@ def get_args() -> argparse.Namespace:
 
     parser.add_argument("oriImg", type=str)
 
+    parser.add_argument("textureImg", type=str)
+
     parser.add_argument(
         "--numWk",
         type=int,
@@ -31,7 +33,7 @@ def get_args() -> argparse.Namespace:
 def main():
     args=get_args()
     device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    imgDataset=dataPr.MyImgDataClass(args.oriImg, device)
+    imgDataset=dataPr.MyImgDataClass(args.oriImg, args.textureImg, device)
 
     model=UNet(2, True).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
