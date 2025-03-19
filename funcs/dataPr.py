@@ -1,7 +1,10 @@
 import torch
 import torchvision.transforms as vis_trans
 from PIL import Image
+import json
+import numpy as np
         
+
 def imgToTensor(imgSize):
     transList = [
             vis_trans.Resize(imgSize),
@@ -12,6 +15,7 @@ def imgToTensor(imgSize):
     transfm = vis_trans.Compose(transList)
     return transfm
 
+
 def tensorToImg(imgSize):
     transList = [
             vis_trans.Resize(imgSize),
@@ -21,6 +25,14 @@ def tensorToImg(imgSize):
              vis_trans.ToPILImage()]
     transfm = vis_trans.Compose(transList)
     return transfm
+
+
+def dataN(raw):
+    # 将数据缩放到0到1范围内
+    min_val = raw.min()
+    max_val = raw.max()
+    scaled = (raw - min_val) / (max_val - min_val)
+    return scaled
 
 
 class MyImgDataClass():
@@ -37,7 +49,7 @@ class MyImgDataClass():
         tempDict["texture"]=f"{textureImg}.jpg"
 
         tempDict["result"]=f"res_{oriImg}.jpg"
-        
+
         self.imgDict=tempDict
         
         ori=self.getImg("origin")
@@ -70,28 +82,30 @@ class MyImgDataClass():
     
     def initUV(self, ):
         raw_data=torch.randn(size=(1, 2, self.h, self.w))
-        # 将数据缩放到0到1范围内
-        min_val = raw_data.min()
-        max_val = raw_data.max()
-        scaled_data = (raw_data - min_val) / (max_val - min_val)
-        scaled_data=scaled_data.to(self.device)
-
+        scaled_data=dataN(raw_data).to(self.device)
         uvByMask=self.byMask(scaled_data)
         return uvByMask
     
     def getPreUV(self, ):
+        # preUV=self.initUV()
         #from densepose
-        preUV=self.initUV()
-        return preUV
+        jsonnPath=self.root+self.imgDict["preUV"]
+        with open(jsonnPath, 'r', encoding='utf-8') as f_densepose:
+            json_str = json.load(f_densepose)#str
+        denseposeDict= json.loads(json_str)#dict
+        
+        scores = denseposeDict["scores"]
+        max_index=np.argmax(scores)
+        
+        preUV = denseposeDict["pred_densepose"][max_index]['uv']
+        preUV_tensor= torch.tensor(preUV)
+
+        return preUV_tensor[None,].to(self.device)#shape:(batch:1, uv:2, h, w)
     
     def uvReplace(self, newUV):
         minSize=min(self.h,self.w)
-
         texture=self.getImgTensor("texture", minSize, minSize)
-
-        min_val = newUV.min()
-        max_val = newUV.max()
-        newUV_scaled = (newUV - min_val) / (max_val - min_val)*(minSize-1)
+        newUV_scaled=dataN(newUV)*(minSize-1)
 
         u=newUV_scaled[0,0,:].long()
         v=newUV_scaled[0,1,:].long()
