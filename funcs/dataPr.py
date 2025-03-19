@@ -98,9 +98,10 @@ class MyImgDataClass():
         max_index=np.argmax(scores)
         
         preUV = denseposeDict["pred_densepose"][max_index]['uv']
-        preUV_tensor= torch.tensor(preUV)
+        preUV_tensor= torch.tensor(preUV)[None,]#shape:(batch:1, uv:2, h, w)
+
         preUV_byMask=self.byMask(preUV_tensor)
-        return preUV_byMask[None,].to(self.device)#shape:(batch:1, uv:2, h, w)
+        return preUV_byMask.to(self.device)
     
     def uvReplace(self, newUV):
         minSize=min(self.h,self.w)
