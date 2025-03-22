@@ -2,6 +2,7 @@ import argparse
 import subprocess
 import pickle
 import json
+from PIL import Image
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -12,15 +13,17 @@ def get_args() -> argparse.Namespace:
 
 def run_DensePose(imgName, mode):
     img=f"myFile/{imgName}.jpg"
-    print("Image name: ", img)
+    print("ImgName: ", img)
+    ori=Image.open(img)
+    print("ImgSize:",ori.size)
 
     dumpSave=None
     # myCommand=f"python apply_net.py dump configs/densepose_rcnn_R_50_FPN_s1x.yaml myFile/model_final_162be9.pkl myFile/{imgName}.jpg --output myFile/{imgName}dump.pkl -v"
 
-    configName="densepose_rcnn_R_101_FPN_DL_s1x.yaml"
+    configName="densepose_rcnn_R_101_FPN_DL_WC2M_s1x.yaml"
     config=f"configs/{configName}"
     
-    modelName="model_final_844d15.pkl"
+    modelName="model_final_de6e7a.pkl"
     model=f"myFile/{modelName}"
 
     myCommand = [
@@ -61,6 +64,7 @@ def trans_DensePoseChartResultWithConfidences(ori):
     for i, data in enumerate(ori):#dataType:<class 'densepose.structures.chart_result.DensePoseChartResultWithConfidences'>
         tempDict={}
         #print(data.labels.shape, data.uv.shape)#example: torch.Size([1006, 567]) torch.Size([2, 1006, 567])
+        print("UV_shape:",data.uv.shape)
         tempDict["labels"]=data.labels.to("cpu").numpy().tolist()
         tempDict["uv"]=data.uv.to("cpu").numpy().tolist()
         # print(len(tempDict["labels"]),len(tempDict["uv"]))
