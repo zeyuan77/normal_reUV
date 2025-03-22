@@ -3,9 +3,7 @@ import torchvision.transforms as vis_trans
 from PIL import Image
 import json
 import numpy as np
-
-from mainF.dp import max_index
-
+        
 
 def imgToTensor(imgSize):
     transList = [
@@ -16,6 +14,7 @@ def imgToTensor(imgSize):
              vis_trans.ToTensor()]
     transfm = vis_trans.Compose(transList)
     return transfm
+
 
 def tensorToImg(imgSize):
     transList = [
@@ -28,23 +27,37 @@ def tensorToImg(imgSize):
     return transfm
 
 
+def dataN(raw):
+    # 将数据缩放到0到1范围内
+    min_val = raw.min()
+    max_val = raw.max()
+    scaled = (raw - min_val) / (max_val - min_val)
+    return scaled
+
+
 class MyImgDataClass():
-    def __init__(self, oriImg, device):
+    def __init__(self, oriImg, textureImg, device):
         self.device=device
         self.root="dataset/"
+        self.img_name = oriImg
         tempDict={}
-        tempDict["origin"]=oriImg
-        tempDict["mask"]="mask_"+oriImg
-        tempDict["normal"]="normal_"+oriImg
-        tempDict["texture"]="texture_"+oriImg
-        tempDict["result"]="res_"+oriImg
+        tempDict["origin"]=f"{oriImg}.jpg"
+        tempDict["mask"]=f"mask_{oriImg}.jpg"
+        tempDict["normal"]=f"normal_{oriImg}.jpg"
+
+        tempDict["preUV"]=f"preUV_{oriImg}.json"
+
+        tempDict["texture"]=f"{textureImg}.jpg"
+
+        tempDict["result"]=f"res_{oriImg}.jpg"
+
         self.imgDict=tempDict
         
         ori=self.getImg("origin")
         (self.w,self.h)=ori.size
 
         maskTensor=self.getImgTensor("mask")
-        self.maskFlag=((maskTensor>0)[0,0,:])
+        self.maskFlag=((maskTensor>0)[0,0,:])#shape:(h,w)
 
     def getImg(self, imgName):
         imgPath=self.root+self.imgDict[imgName]
@@ -60,6 +73,7 @@ class MyImgDataClass():
         imgTrans=imgToTensor((h,w))
         imgTensor=imgTrans(img)
         return imgTensor[None,].to(self.device)#shape:(batch:1, dim, h, w)
+
     def byMask(self, img, ifMain=True):
         if ifMain:
             img[:,:,~self.maskFlag]=0
@@ -69,39 +83,31 @@ class MyImgDataClass():
     
     def initUV(self, ):
         raw_data=torch.randn(size=(1, 2, self.h, self.w))
-        # 将数据缩放到0到1范围内
-        min_val = raw_data.min()
-        max_val = raw_data.max()
-        scaled_data = (raw_data - min_val) / (max_val - min_val)
-        scaled_data=scaled_data.to(self.device)
-
+        scaled_data=dataN(raw_data).to(self.device)
         uvByMask=self.byMask(scaled_data)
         return uvByMask
-
-    def getPreUV(self,):
-        with open('normal_reUV-main/funcs/img1Json.json', 'r', encoding='utf-8') as f:
-            json_str = f.read()
-        data = json.loads(json_str)
-        data = json.loads(data)
-        scores = data["scores"]
-        max_index=np.argmax(scores)
-        uv_data = data["pred_densepose"][max_index]['uv']
-        uv_tensor = torch.tensor(uv_data).float()
-        preUv=uv_tensor
-        return preUv
-
-
-
-
     
-    def uvReplace(self, newUV):#根据 UV 映射从纹理图像中采样像素，替换原始图像中的对应区域。
+    def getPreUV(self, ):
+        # preUV=self.initUV()
+        #from densepose
+        jsonnPath=self.root+self.imgDict["preUV"]
+        with open(jsonnPath, 'r', encoding='utf-8') as f_densepose:
+            json_str = json.load(f_densepose)#str
+        denseposeDict= json.loads(json_str)#dict
+        
+        scores = denseposeDict["scores"]
+        max_index=np.argmax(scores)
+        
+        preUV = denseposeDict["pred_densepose"][max_index]['uv']
+        preUV_tensor= torch.tensor(preUV)[None,]#shape:(batch:1, uv:2, h, w)
+
+        preUV_byMask=self.byMask(preUV_tensor)
+        return preUV_byMask.to(self.device)
+    
+    def uvReplace(self, newUV):
         minSize=min(self.h,self.w)
-
         texture=self.getImgTensor("texture", minSize, minSize)
-
-        min_val = newUV.min()
-        max_val = newUV.max()
-        newUV_scaled = (newUV - min_val) / (max_val - min_val)*(minSize-1)
+        newUV_scaled=dataN(newUV)*(minSize-1)
 
         u=newUV_scaled[0,0,:].long()
         v=newUV_scaled[0,1,:].long()
