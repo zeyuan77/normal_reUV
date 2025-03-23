@@ -39,17 +39,16 @@ class MyImgDataClass():
     def __init__(self, oriImg, textureImg, device):
         self.device=device
         self.root="dataset/"
-        self.img_name = oriImg
+        
+        self.oriImg=oriImg
+        self.resImg=f"{oriImg}_by_{textureImg}.jpg"
+
         tempDict={}
         tempDict["origin"]=f"{oriImg}.jpg"
         tempDict["mask"]=f"mask_{oriImg}.jpg"
         tempDict["normal"]=f"normal_{oriImg}.jpg"
 
-        tempDict["preUV"]=f"preUV_{oriImg}.json"
-
         tempDict["texture"]=f"{textureImg}.jpg"
-
-        tempDict["result"]=f"res_{oriImg}.jpg"
 
         self.imgDict=tempDict
         
@@ -81,16 +80,18 @@ class MyImgDataClass():
             img[:,:,self.maskFlag]=0
         return img
     
-    def initUV(self, ):
-        raw_data=torch.randn(size=(1, 2, self.h, self.w))
-        scaled_data=dataN(raw_data).to(self.device)
-        uvByMask=self.byMask(scaled_data)
-        return uvByMask
+    # def initUV(self, ):#not use
+    #     raw_data=torch.randn(size=(1, 2, self.h, self.w))
+    #     scaled_data=dataN(raw_data).to(self.device)
+    #     uvByMask=self.byMask(scaled_data)
+    #     return uvByMask
     
     def getPreUV(self, ):
         # preUV=self.initUV()
         #from densepose
-        jsonnPath=self.root+self.imgDict["preUV"]
+        jsonName=f"preUV_{self.oriImg}.json"
+        jsonnPath=self.root+jsonName
+
         with open(jsonnPath, 'r', encoding='utf-8') as f_densepose:
             json_str = json.load(f_densepose)#str
         denseposeDict= json.loads(json_str)#dict
@@ -103,6 +104,13 @@ class MyImgDataClass():
 
         preUV_byMask=self.byMask(preUV_tensor)
         return preUV_byMask.to(self.device)
+    
+    def saveModel(self, epoch, model):
+        modelName=f"epoch{epoch}_{self.oriImg}.pth"
+        savePath = self.root + modelName
+        torch.save({"epoch": epoch,
+                    "model_state_dict": model.state_dict()
+                    }, savePath)
     
     def uvReplace(self, newUV):
         minSize=min(self.h,self.w)
@@ -123,7 +131,8 @@ class MyImgDataClass():
     def saveResImg(self, imgTensor):
         tensorTrans=tensorToImg((self.h,self.w))
         img=tensorTrans(imgTensor[0])
-        savePath=self.root+self.imgDict["result"]
-        img.save(savePath)
+        img.save(self.resImg)
+
+
 
                
