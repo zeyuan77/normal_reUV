@@ -39,6 +39,7 @@ class MyImgDataClass():
     def __init__(self, oriImg, textureImg, device):
         self.device=device
         self.root="dataset/"
+        self.img_name = oriImg
         tempDict={}
         tempDict["origin"]=f"{oriImg}.jpg"
         tempDict["mask"]=f"mask_{oriImg}.jpg"

@@ -1,6 +1,7 @@
 
 import torch
 
+
 def compute_d_x(ori):
     temp=ori[1:,:]-ori[:-1,:]
     d_x=torch.zeros_like(ori)
@@ -54,5 +55,14 @@ def train_main(imgDataset, model, updater, num_epochs):
         if(epoch%10==0 or epoch==num_epochs-1):
             print("Epoch:", epoch)
             print("Train_loss",loss)
+        if(epoch%100==0 or epoch==num_epochs-1):
+            save_modelArguments(imgDataset,epoch,model)
     return resUV
         
+def save_modelArguments(imgDataset,epoch,model):
+    save_dir = 'dataset/'
+    img_Name = imgDataset.img_name
+    savePath = save_dir + f"epoch{epoch}_{img_Name}.pth"
+    torch.save({"epoch": epoch,
+                "model_state_dict": model.state_dict()
+                }, savePath)
