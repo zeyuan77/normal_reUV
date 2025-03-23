@@ -161,6 +161,9 @@ cython_debug/
 
 
 #others
+dataset/
+.idea/
+
 *.jpg
 *.png
 *.bmp
@@ -169,4 +172,3 @@ cython_debug/
 *.json
 *.pth
 
-.idea/
