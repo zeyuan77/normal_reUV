@@ -39,7 +39,7 @@ class MyImgDataClass():
     def __init__(self, oriImg, textureImg, device):
         self.device=device
         self.root="dataset/"
-        
+
         self.oriImg=oriImg
         self.resImg=f"{oriImg}_by_{textureImg}.jpg"
 
@@ -131,7 +131,7 @@ class MyImgDataClass():
     def saveResImg(self, imgTensor):
         tensorTrans=tensorToImg((self.h,self.w))
         img=tensorTrans(imgTensor[0])
-        img.save(self.resImg)
+        img.save(self.root+self.resImg)
 
 
 
