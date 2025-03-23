@@ -109,7 +109,7 @@ class MyImgDataClass():
         modelName=f"epoch{epoch}_{self.oriImg}.pth"
         savePath = self.root + modelName
         torch.save({"epoch": epoch,
-                    "model_state_dict": model.state_dict()
+                    "model_state": model.state_dict()
                     }, savePath)
     
     def uvReplace(self, newUV):
