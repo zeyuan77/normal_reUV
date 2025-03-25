@@ -133,10 +133,10 @@ class MyImgDataClass():
     def uvReplace(self, newUV):
         minSize=min(self.cropSize)
         texture=self.getImgTensor("texture", re_wh=(minSize, minSize), ifCrop=False)
-        newUV_scaled=dataN(newUV)*(minSize-1)
 
-        u=newUV_scaled[0,0,:].long()
-        v=newUV_scaled[0,1,:].long()
+        newUV=newUV*(minSize-1)
+        u=newUV[0,0,:].long()
+        v=newUV[0,1,:].long()
 
         ori=self.getImgTensor("origin")
 
