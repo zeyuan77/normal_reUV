@@ -113,7 +113,7 @@ class MyImgDataClass():
     #     return uvByMask
 
     
-    def getPreUV(self, ):
+    def getPreUV_Mask(self, ):
         # preUV=self.initUV()
         #from densepose
         preUV_tensor= torch.tensor(self.preUV)[None,]#shape:(batch:1, uv:2, h, w)

@@ -1,6 +1,6 @@
 
 import torch
-
+from dataPr import dataN
 
 def compute_d_x(ori):
     temp=ori[1:,:]-ori[:-1,:]
@@ -39,17 +39,18 @@ def uv_normal_loss(uv, normal, pre_uv):
 
 def train_main(imgDataset, model, updater, num_epochs, baseEpoch):
     # uv=imgDataset.initUV()
-    uv=imgDataset.getPreUV()
+    uv=imgDataset.getPreUV_Mask()
     normal=imgDataset.getImgTensor("normal", imgDataset.oriSize)
-    normal=imgDataset.byMask(normal)
-    pre_uv=imgDataset.getPreUV()
+    normal_Mask=imgDataset.byMask(normal)
+    preUV_Mask=imgDataset.getPreUV_Mask()
 
     for epoch in range(num_epochs):
         resUV=model(uv)
-        resUV=imgDataset.byMask(resUV)
+        resUV_N=dataN(resUV)
+        resUV_Mask=imgDataset.byMask(resUV_N)
 
         updater.zero_grad()
-        loss=uv_normal_loss(resUV, normal, pre_uv)
+        loss=uv_normal_loss(resUV_Mask, normal_Mask, preUV_Mask)
         loss.backward()
         updater.step()
         if(epoch%10==0 or epoch==num_epochs-1):
