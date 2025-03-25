@@ -5,9 +5,9 @@ import json
 import numpy as np
         
 
-def imgToTensor(imgSize):
+def imgToTensor(imgSize=None):
     transList = [
-            vis_trans.Resize(imgSize),
+            # vis_trans.Resize(imgSize),
             #  vis_trans.RandomCrop(picSize,pad_if_needed=True),
             #  vis_trans.RandomHorizontalFlip(),
             #  vis_trans.RandomVerticalFlip(),
@@ -47,10 +47,10 @@ class MyImgDataClass():
         tempDict["origin"]=f"{oriImg}.jpg"
         tempDict["mask"]=f"mask_{oriImg}.jpg"
         tempDict["normal"]=f"normal_{oriImg}.jpg"
-
         tempDict["texture"]=f"{textureImg}.jpg"
-
         self.imgDict=tempDict
+        
+        self.cropBox, self.preUV=self.getDenseposeData()
         
         ori=self.getImg("origin")
         (self.w,self.h)=ori.size
@@ -58,18 +58,42 @@ class MyImgDataClass():
         maskTensor=self.getImgTensor("mask")
         self.maskFlag=((maskTensor>0)[0,0,:])#shape:(h,w)
 
-    def getImg(self, imgName):
+
+    def getDenseposeData(self,):
+        #from densepose
+        jsonName=f"preUV_{self.oriImg}.json"
+        jsonnPath=self.root+jsonName
+
+        with open(jsonnPath, 'r', encoding='utf-8') as f_densepose:
+            json_str = json.load(f_densepose)#str
+        denseposeDict= json.loads(json_str)#dict
+
+        cropBox=denseposeDict['pred_boxes_XYXY'][0]
+        cropBox_int=[int(i) for i in cropBox]
+        # print(cropBox, cropBox_int)
+
+        scores = denseposeDict["scores"]
+        max_idx=np.argmax(scores) 
+        preUV = denseposeDict["pred_densepose"][max_idx]['uv']
+
+        return cropBox_int, preUV
+    
+    def getImg(self, imgName, h=-1, w=-1, ifCrop=True):
         imgPath=self.root+self.imgDict[imgName]
-        img=Image.open(imgPath)      
+        img=Image.open(imgPath)  
+        if h>0 and w >0:
+            img=img.resize((w, h), resample=2)
+        if ifCrop:
+            img=img.crop(self.cropBox)    
         return img
     
-    def getImgTensor(self, imgName, h=-1, w=-1):
+    def getImgTensor(self, imgName, h=-1, w=-1, ifCrop=True):
         if(h<0 or w <0):
             h=self.h
             w=self.w
 
-        img=self.getImg(imgName)
-        imgTrans=imgToTensor((h,w))
+        img=self.getImg(imgName, h, w, ifCrop)
+        imgTrans=imgToTensor()
         imgTensor=imgTrans(img)
         return imgTensor[None,].to(self.device)#shape:(batch:1, dim, h, w)
 
@@ -89,18 +113,7 @@ class MyImgDataClass():
     def getPreUV(self, ):
         # preUV=self.initUV()
         #from densepose
-        jsonName=f"preUV_{self.oriImg}.json"
-        jsonnPath=self.root+jsonName
-
-        with open(jsonnPath, 'r', encoding='utf-8') as f_densepose:
-            json_str = json.load(f_densepose)#str
-        denseposeDict= json.loads(json_str)#dict
-        
-        scores = denseposeDict["scores"]
-        max_index=np.argmax(scores)
-        
-        preUV = denseposeDict["pred_densepose"][max_index]['uv']
-        preUV_tensor= torch.tensor(preUV)[None,]#shape:(batch:1, uv:2, h, w)
+        preUV_tensor= torch.tensor(self.preUV)[None,]#shape:(batch:1, uv:2, h, w)
 
         preUV_byMask=self.byMask(preUV_tensor)
         return preUV_byMask.to(self.device)
@@ -114,7 +127,7 @@ class MyImgDataClass():
     
     def uvReplace(self, newUV):
         minSize=min(self.h,self.w)
-        texture=self.getImgTensor("texture", minSize, minSize)
+        texture=self.getImgTensor("texture", minSize, minSize, False)
         newUV_scaled=dataN(newUV)*(minSize-1)
 
         u=newUV_scaled[0,0,:].long()

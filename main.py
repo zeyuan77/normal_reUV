@@ -20,12 +20,12 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--lr",
         type=float,
-        default=0.05
+        default=0.1
     )
     parser.add_argument(
         "--epoch",
         type=int,
-        default=37
+        default=1
     )
     parser.add_argument(
         "--model_from",
