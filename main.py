@@ -14,18 +14,18 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--numWk",
         type=int,
-        default=4,
+        default=8,
         help="num_workers"
     )
     parser.add_argument(
         "--lr",
         type=float,
-        default=0.05
+        default=0.5
     )
     parser.add_argument(
         "--epoch",
         type=int,
-        default=37
+        default=1
     )
     parser.add_argument(
         "--model_from",
